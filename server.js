@@ -7,14 +7,27 @@ const vehiclesRoutes = require('./routes/vehicles');
 const servicesRoutes = require('./routes/services');
 const invoicesRoutes = require('./routes/invoices');
 const feedbackRoutes = require('./routes/feedback');
+const infoRoutes = require('./routes/info');
+const usersRoutes = require('./routes/users');
 const { authenticateToken, authorizeRoles } = require('./middleware/authMiddleware');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swaggerDef');
+const cors = require('cors');
 require('dotenv').config();
 
 app.use(express.json());
 
-// Conditionally enable Swagger UI
+// VULN #20: CORS - Autoriser toutes les origines
+app.use(cors());
+
+// VULN #16: Désactivation des en-têtes de sécurité
+app.use((req, res, next) => {
+  res.removeHeader('X-Content-Type-Options');
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('Strict-Transport-Security');
+  next();
+});
+
 if (process.env.ENABLE_SWAGGER === 'true') {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   console.log('Swagger UI enabled at /api-docs');
@@ -30,15 +43,32 @@ app.use('/api/vehicles', vehiclesRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/invoices', invoicesRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/info', infoRoutes);
+app.use('/api/users', usersRoutes);
 
-// Example of a protected route (requires authentication)
 app.get('/api/protected', authenticateToken, (req, res) => {
   res.json({ message: `Welcome ${req.user.username}, your role is ${req.user.role}. This is a protected route!` });
 });
 
-// Example of an admin-only route (requires admin role)
 app.get('/api/admin', authenticateToken, authorizeRoles(['admin']), (req, res) => {
   res.json({ message: 'Welcome Admin! This is an admin-only route.' });
+});
+
+if (process.env.ENABLE_SWAGGER === 'true') {
+  app.get('/swagger.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+}
+
+// VULN #5: Messages d'erreur verbeux (Global)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.statusCode || 500).send({
+    message: err.message || 'Internal Server Error',
+    stack: err.stack,
+    error: err,
+  });
 });
 
 app.listen(port, () => {

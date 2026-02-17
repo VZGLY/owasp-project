@@ -7,20 +7,20 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
  * @swagger
  * tags:
  *   name: Invoices
- *   description: Invoice management operations
+ *   description: Opérations de gestion des factures
  */
 
 /**
  * @swagger
  * /invoices:
  *   get:
- *     summary: Get all invoices (Admin only)
+ *     summary: Obtenir toutes les factures (Admin seulement)
  *     tags: [Invoices]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: A list of invoices
+ *         description: Une liste de factures
  *         content:
  *           application/json:
  *             schema:
@@ -28,11 +28,11 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
  *               items:
  *                 $ref: '#/components/schemas/Invoice'
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   try {
@@ -51,7 +51,6 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
     );
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching invoices:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -60,8 +59,9 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
  * @swagger
  * /invoices/{id}:
  *   get:
- *     summary: Get a single invoice by ID (Admin only)
+ *     summary: Obtenir une seule facture par ID (Admin seulement)
  *     tags: [Invoices]
+ *     description: Récupère une seule facture par son ID.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -70,22 +70,31 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the invoice to retrieve
+ *         description: ID numérique de la facture à récupérer.
  *     responses:
  *       200:
- *         description: A single invoice object with its items
+ *         description: Un seul objet facture avec ses éléments
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Invoice'
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Invoice not found
+ *         description: Facture non trouvée
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 stack:
+ *                   type: string
  */
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
@@ -114,8 +123,8 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
     }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching invoice:', err);
-    res.status(500).json({ message: 'Server error' });
+    // VULN #18: Messages d'erreur verbeux spécifiques - Factures
+    res.status(500).json({ message: 'Server error fetching invoice', stack: err.stack });
   }
 });
 
@@ -123,7 +132,7 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  * @swagger
  * /invoices:
  *   post:
- *     summary: Create a new invoice (Admin only)
+ *     summary: Créer une nouvelle facture (Admin seulement)
  *     tags: [Invoices]
  *     security:
  *       - bearerAuth: []
@@ -135,7 +144,7 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *             $ref: '#/components/schemas/InvoiceInput'
  *     responses:
  *       201:
- *         description: Invoice created successfully
+ *         description: Facture créée avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -152,21 +161,20 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *                 message:
  *                   type: string
  *       400:
- *         description: Invalid input or service not found
+ *         description: Entrée invalide ou service non trouvé
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
-  const { customer_id, vehicle_id, items } = req.body; // items is an array [{ service_id, quantity }]
-  const client = await query('BEGIN'); // Start transaction
+  const { customer_id, vehicle_id, items } = req.body;
+  const client = await query('BEGIN');
   try {
     let total_amount = 0;
     
-    // Calculate total amount from items
     for (const item of items) {
       const serviceResult = await query('SELECT price FROM services WHERE id = $1', [item.service_id]);
       if (serviceResult.rows.length === 0) {
@@ -189,11 +197,11 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
       );
     }
 
-    await query('COMMIT'); // End transaction
-    res.status(201).json({ id: invoice_id, total_amount, invoice_date: invoiceResult.rows[0].invoice_date, message: 'Invoice created successfully' });
+    await query('COMMIT');
+    res.status(201).json({ id: invoice_id, total_amount, invoice_date: invoiceResult.rows[0].invoice_date, message: 'Facture créée avec succès' });
   } catch (err) {
-    await query('ROLLBACK'); // Rollback transaction on error
-    console.error('Error creating invoice:', err);
+    await query('ROLLBACK');
+    // VULN #5: Divulgation d'informations sensibles via des messages d'erreur verbeux
     res.status(500).json({ message: 'Server error: ' + err.message });
   }
 });
@@ -202,7 +210,7 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  * @swagger
  * /invoices/{id}/status:
  *   patch:
- *     summary: Update invoice status (Admin only)
+ *     summary: Mettre à jour le statut de la facture (Admin seulement)
  *     tags: [Invoices]
  *     security:
  *       - bearerAuth: []
@@ -212,7 +220,7 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the invoice to update
+ *         description: ID numérique de la facture à mettre à jour
  *     requestBody:
  *       required: true
  *       content:
@@ -221,7 +229,7 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  *             $ref: '#/components/schemas/InvoiceStatusUpdate'
  *     responses:
  *       200:
- *         description: Invoice status updated successfully
+ *         description: Statut de la facture mis à jour avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -232,28 +240,27 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  *                 status:
  *                   type: string
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Invoice not found
+ *         description: Facture non trouvée
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.patch('/:id/status', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body; // e.g., 'paid', 'pending', 'cancelled'
+    const { status } = req.body;
     try {
         const result = await query(
             'UPDATE invoices SET status = $1 WHERE id = $2 RETURNING id, status',
             [status, id]
         );
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Invoice not found' });
+            return res.status(404).json({ message: 'Facture non trouvée' });
         }
         res.json(result.rows[0]);
     } catch (err) {
-        console.error('Error updating invoice status:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -262,7 +269,7 @@ router.patch('/:id/status', authenticateToken, authorizeRoles(['admin']), async 
  * @swagger
  * /invoices/{id}:
  *   delete:
- *     summary: Delete an invoice (Admin only)
+ *     summary: Supprimer une facture (Admin seulement)
  *     tags: [Invoices]
  *     security:
  *       - bearerAuth: []
@@ -272,10 +279,10 @@ router.patch('/:id/status', authenticateToken, authorizeRoles(['admin']), async 
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the invoice to delete
+ *         description: ID numérique de la facture à supprimer
  *     responses:
  *       200:
- *         description: Invoice deleted successfully
+ *         description: Facture supprimée avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -286,24 +293,23 @@ router.patch('/:id/status', authenticateToken, authorizeRoles(['admin']), async 
  *                 id:
  *                   type: integer
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Invoice not found
+ *         description: Facture non trouvée
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
     const result = await query('DELETE FROM invoices WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Invoice not found' });
+      return res.status(404).json({ message: 'Facture non trouvée' });
     }
-    res.json({ message: 'Invoice deleted successfully', id: result.rows[0].id });
+    res.json({ message: 'Facture supprimée avec succès', id: result.rows[0].id });
   } catch (err) {
-    console.error('Error deleting invoice:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

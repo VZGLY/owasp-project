@@ -7,20 +7,20 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
  * @swagger
  * tags:
  *   name: Services
- *   description: Service management operations
+ *   description: Opérations de gestion des services
  */
 
 /**
  * @swagger
  * /services:
  *   get:
- *     summary: Get all services (Admin and User)
+ *     summary: Obtenir tous les services (Admin et Utilisateur)
  *     tags: [Services]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: A list of services
+ *         description: Une liste de services
  *         content:
  *           application/json:
  *             schema:
@@ -28,18 +28,65 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
  *               items:
  *                 $ref: '#/components/schemas/Service'
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin or User role required)
+ *         description: Interdit (Rôle Admin ou Utilisateur requis)
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
   try {
     const result = await query('SELECT id, name, description, price FROM services');
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching services:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /services/search:
+ *   get:
+ *     summary: Rechercher des services (Admin et Utilisateur)
+ *     tags: [Services]
+ *     description: Permet de rechercher des services par nom ou description.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Terme de recherche pour le nom ou la description du service.
+ *     responses:
+ *       200:
+ *         description: Services correspondants
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Service'
+ *       401:
+ *         description: Non autorisé
+ *       403:
+ *         description: Interdit (Rôle Admin ou Utilisateur requis)
+ *       500:
+ *         description: Erreur serveur
+ */
+router.get('/search', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
+  const { query: searchQuery } = req.query;
+  let sqlQuery = 'SELECT id, name, description, price FROM services';
+  if (searchQuery) {
+    // VULN #2: Injection SQL - Recherche de services
+    sqlQuery += ` WHERE name ILIKE '%${searchQuery}%' OR description ILIKE '%${searchQuery}%'`;
+    console.log('Executing vulnerable service search query:', sqlQuery);
+  }
+  try {
+    const result = await query(sqlQuery);
+    res.json(result.rows);
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -48,8 +95,9 @@ router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req
  * @swagger
  * /services/{id}:
  *   get:
- *     summary: Get a single service by ID (Admin and User)
+ *     summary: Obtenir un seul service par ID (Admin et Utilisateur)
  *     tags: [Services]
+ *     description: Récupère un seul service par son ID.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -58,22 +106,31 @@ router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the service to retrieve
+ *         description: ID numérique du service à récupérer.
  *     responses:
  *       200:
- *         description: A single service object
+ *         description: Un seul objet service
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Service'
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin or User role required)
+ *         description: Interdit (Rôle Admin ou Utilisateur requis)
  *       404:
- *         description: Service not found
+ *         description: Service non trouvé
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 stack:
+ *                   type: string
  */
 router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
   const { id } = req.params;
@@ -84,8 +141,8 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (
     }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching service:', err);
-    res.status(500).json({ message: 'Server error' });
+    // VULN #17: Messages d'erreur verbeux spécifiques - Services
+    res.status(500).json({ message: 'Server error fetching service', stack: err.stack });
   }
 });
 
@@ -93,7 +150,7 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (
  * @swagger
  * /services:
  *   post:
- *     summary: Create a new service (Admin only)
+ *     summary: Créer un nouveau service (Admin seulement)
  *     tags: [Services]
  *     security:
  *       - bearerAuth: []
@@ -105,30 +162,30 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (
  *             $ref: '#/components/schemas/ServiceInput'
  *     responses:
  *       201:
- *         description: Service created successfully
+ *         description: Service créé avec succès
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Service'
  *       400:
- *         description: Invalid input
+ *         description: Entrée invalide
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { name, description, price } = req.body;
   try {
+    // VULN #6: Valeurs de prix de service négatives (manque de validation)
     const result = await query(
       'INSERT INTO services (name, description, price) VALUES ($1, $2, $3) RETURNING id, name, description, price',
       [name, description, price]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error creating service:', err);
     if (err.code === '23505') { // Unique violation if name is made unique
       return res.status(400).json({ message: 'Service with this name already exists' });
     }
@@ -140,7 +197,7 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  * @swagger
  * /services/{id}:
  *   put:
- *     summary: Update an existing service (Admin only)
+ *     summary: Mettre à jour un service existant (Admin seulement)
  *     tags: [Services]
  *     security:
  *       - bearerAuth: []
@@ -150,7 +207,7 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the service to update
+ *         description: ID numérique du service à mettre à jour
  *     requestBody:
  *       required: true
  *       content:
@@ -159,38 +216,38 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  *             $ref: '#/components/schemas/ServiceInput'
  *     responses:
  *       200:
- *         description: Service updated successfully
+ *         description: Service mis à jour avec succès
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Service'
  *       400:
- *         description: Invalid input
+ *         description: Entrée invalide
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Service not found
+ *         description: Service non trouvé
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   const { name, description, price } = req.body;
   try {
+    // VULN #6: Valeurs de prix de service négatives (manque de validation)
     const result = await query(
       'UPDATE services SET name = $1, description = $2, price = $3 WHERE id = $4 RETURNING id, name, description, price',
       [name, description, price, id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Service not found' });
+      return res.status(404).json({ message: 'Service non trouvé' });
     }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error updating service:', err);
     if (err.code === '23505') { // Unique violation if name is made unique
-      return res.status(400).json({ message: 'Service with this name already exists' });
+      return res.status(400).json({ message: 'Service avec ce nom existe déjà' });
     }
     res.status(500).json({ message: 'Server error' });
   }
@@ -200,7 +257,7 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  * @swagger
  * /services/{id}:
  *   delete:
- *     summary: Delete a service (Admin only)
+ *     summary: Supprimer un service (Admin seulement)
  *     tags: [Services]
  *     security:
  *       - bearerAuth: []
@@ -210,10 +267,10 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the service to delete
+ *         description: ID numérique du service à supprimer
  *     responses:
  *       200:
- *         description: Service deleted successfully
+ *         description: Service supprimé avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -224,24 +281,23 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *                 id:
  *                   type: integer
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Service not found
+ *         description: Service non trouvé
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
     const result = await query('DELETE FROM services WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Service not found' });
+      return res.status(404).json({ message: 'Service non trouvé' });
     }
-    res.json({ message: 'Service deleted successfully', id: result.rows[0].id });
+    res.json({ message: 'Service supprimé avec succès', id: result.rows[0].id });
   } catch (err) {
-    console.error('Error deleting service:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

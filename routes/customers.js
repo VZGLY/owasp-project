@@ -7,20 +7,28 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
  * @swagger
  * tags:
  *   name: Customers
- *   description: Customer management operations
+ *   description: Opérations de gestion des clients
  */
 
 /**
  * @swagger
  * /customers:
  *   get:
- *     summary: Get all customers (Admin only)
+ *     summary: Obtenir tous les clients ou rechercher par nom de famille (Admin seulement)
  *     tags: [Customers]
+ *     description: Récupère une liste de tous les clients ou recherche des clients par nom de famille.
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: last_name
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Nom de famille à rechercher.
  *     responses:
  *       200:
- *         description: A list of customers
+ *         description: Une liste de clients
  *         content:
  *           application/json:
  *             schema:
@@ -28,18 +36,25 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
  *               items:
  *                 $ref: '#/components/schemas/Customer'
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Utilisateur authentifié requis)
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
-router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
+router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
+  // VULN #1 : Accès non autorisé aux données sensibles - Clients
+  const { last_name } = req.query;
+  let sqlQuery = 'SELECT id, first_name, last_name, email, phone FROM customers';
+  if (last_name) {
+    // VULN #14: Injection SQL - Recherche de clients par nom
+    sqlQuery += ` WHERE last_name ILIKE '%${last_name}%'`;
+    console.log('Executing vulnerable customer search query:', sqlQuery);
+  }
   try {
-    const result = await query('SELECT id, first_name, last_name, email, phone FROM customers');
+    const result = await query(sqlQuery);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching customers:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -48,7 +63,7 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
  * @swagger
  * /customers/{id}:
  *   get:
- *     summary: Get a single customer by ID (Admin only)
+ *     summary: Obtenir un client par ID (Admin seulement)
  *     tags: [Customers]
  *     security:
  *       - bearerAuth: []
@@ -58,22 +73,22 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the customer to retrieve
+ *         description: ID numérique du client à récupérer
  *     responses:
  *       200:
- *         description: A single customer object
+ *         description: Un seul objet client
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Customer'
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Customer not found
+ *         description: Client non trouvé
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
@@ -84,7 +99,6 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
     }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching customer:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -93,7 +107,7 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  * @swagger
  * /customers:
  *   post:
- *     summary: Create a new customer (Admin only)
+ *     summary: Créer un nouveau client (Admin seulement)
  *     tags: [Customers]
  *     security:
  *       - bearerAuth: []
@@ -105,19 +119,19 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *             $ref: '#/components/schemas/CustomerInput'
  *     responses:
  *       201:
- *         description: Customer created successfully
+ *         description: Client créé avec succès
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Customer'
  *       400:
- *         description: Invalid input or customer with this email already exists
+ *         description: Entrée invalide ou client avec cet e-mail existe déjà
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { first_name, last_name, email, phone } = req.body;
@@ -128,7 +142,6 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error creating customer:', err);
     if (err.code === '23505') { // Unique violation
       return res.status(400).json({ message: 'Customer with this email already exists' });
     }
@@ -140,7 +153,7 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  * @swagger
  * /customers/{id}:
  *   put:
- *     summary: Update an existing customer (Admin only)
+ *     summary: Mettre à jour un client existant (Admin seulement)
  *     tags: [Customers]
  *     security:
  *       - bearerAuth: []
@@ -150,7 +163,7 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the customer to update
+ *         description: ID numérique du client à mettre à jour
  *     requestBody:
  *       required: true
  *       content:
@@ -159,21 +172,21 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
  *             $ref: '#/components/schemas/CustomerInput'
  *     responses:
  *       200:
- *         description: Customer updated successfully
+ *         description: Client mis à jour avec succès
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Customer'
  *       400:
- *         description: Invalid input or customer with this email already exists
+ *         description: Entrée invalide ou client avec cet e-mail existe déjà
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Customer not found
+ *         description: Client non trouvé
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
@@ -188,7 +201,6 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
     }
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error updating customer:', err);
     if (err.code === '23505') { // Unique violation
       return res.status(400).json({ message: 'Customer with this email already exists' });
     }
@@ -200,7 +212,7 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  * @swagger
  * /customers/{id}:
  *   delete:
- *     summary: Delete a customer (Admin only)
+ *     summary: Supprimer un client (Admin seulement)
  *     tags: [Customers]
  *     security:
  *       - bearerAuth: []
@@ -210,10 +222,10 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *         schema:
  *           type: integer
  *         required: true
- *         description: Numeric ID of the customer to delete
+ *         description: ID numérique du client à supprimer
  *     responses:
  *       200:
- *         description: Customer deleted successfully
+ *         description: Client supprimé avec succès
  *         content:
  *           application/json:
  *             schema:
@@ -224,13 +236,13 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *                 id:
  *                   type: integer
  *       401:
- *         description: Unauthorized
+ *         description: Non autorisé
  *       403:
- *         description: Forbidden (Admin role required)
+ *         description: Interdit (Rôle Admin requis)
  *       404:
- *         description: Customer not found
+ *         description: Client non trouvé
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
@@ -241,7 +253,6 @@ router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, 
     }
     res.json({ message: 'Customer deleted successfully', id: result.rows[0].id });
   } catch (err) {
-    console.error('Error deleting customer:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

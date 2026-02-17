@@ -1,4 +1,3 @@
--- Schema SQL (from database/schema.sql)
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
@@ -58,20 +57,6 @@ CREATE TABLE IF NOT EXISTS feedback (
 );
 
 -- Dummy Data (converted from database/init_db.js)
-
--- Users (bcrypt hash for 'adminpass' and 'userpass' would ideally be generated beforehand
--- For simplicity in this init.sql, we'll use plain text passwords.
--- In a real application, ensure passwords are pre-hashed before insertion or handle hashing in application logic.
--- For this demo, let's use example hashed passwords for 'adminpass' and 'userpass'.
--- You would generate these hashes using bcrypt.hash('adminpass', 10) etc.
--- Example hashes:
--- 'adminpass' -> $2b$10$wE9D.k.g.f.J.H.i.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.Z
--- 'userpass' -> $2b$10$a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.x.y.z
--- For now, let's use easily testable, but insecure, plain text.
-INSERT INTO users (username, password, role) VALUES
-('admin', '$2b$10$tZ9sJbC.9e2c6fG7h8i9j.q.r.s.t.u.v.w.x.y.z.A.B.C.D.E', 'admin') ON CONFLICT (username) DO NOTHING;
-INSERT INTO users (username, password, role) VALUES
-('user1', '$2b$10$T.U.V.W.X.Y.Z.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q', 'user') ON CONFLICT (username) DO NOTHING;
 
 
 -- Customers

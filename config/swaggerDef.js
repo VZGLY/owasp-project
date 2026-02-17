@@ -6,15 +6,11 @@ const options = {
     info: {
       title: 'Garage Management API',
       version: '1.0.0',
-      description: 'API for managing garage operations including customers, vehicles, services, invoices, and feedback.',
-      contact: {
-        name: 'Gemini CLI',
-        url: 'https://gemini.google.com',
-      },
+      description: 'API for managing garage operations including customers, vehicles, services, invoices, and feedback.'
     },
     servers: [
       {
-        url: 'http://localhost:3000/api', // Base URL for your API endpoints
+        url: 'http://localhost:3000/api',
         description: 'Development server',
       },
     ],
@@ -264,6 +260,7 @@ const options = {
             price: {
               type: 'number',
               format: 'float',
+              minimum: 0, // This implies price should be non-negative, but the application doesn't enforce it.
             },
           },
           example: {
