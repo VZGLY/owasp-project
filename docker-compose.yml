@@ -31,7 +31,6 @@ services:
       - db
     volumes:
       - .:/app
-      - /app/node_modules
 
 volumes:
   db-data:

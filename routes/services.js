@@ -3,7 +3,37 @@ const router = express.Router();
 const { query } = require('../config/db');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 
-// Get all services (Admin and User)
+/**
+ * @swagger
+ * tags:
+ *   name: Services
+ *   description: Service management operations
+ */
+
+/**
+ * @swagger
+ * /services:
+ *   get:
+ *     summary: Get all services (Admin and User)
+ *     tags: [Services]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of services
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Service'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin or User role required)
+ *       500:
+ *         description: Server error
+ */
 router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
   try {
     const result = await query('SELECT id, name, description, price FROM services');
@@ -14,7 +44,37 @@ router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req
   }
 });
 
-// Get a single service by ID (Admin and User)
+/**
+ * @swagger
+ * /services/{id}:
+ *   get:
+ *     summary: Get a single service by ID (Admin and User)
+ *     tags: [Services]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the service to retrieve
+ *     responses:
+ *       200:
+ *         description: A single service object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Service'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin or User role required)
+ *       404:
+ *         description: Service not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
   const { id } = req.params;
   try {
@@ -29,7 +89,36 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (
   }
 });
 
-// Create a new service (Admin only)
+/**
+ * @swagger
+ * /services:
+ *   post:
+ *     summary: Create a new service (Admin only)
+ *     tags: [Services]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ServiceInput'
+ *     responses:
+ *       201:
+ *         description: Service created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Service'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { name, description, price } = req.body;
   try {
@@ -47,7 +136,45 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
   }
 });
 
-// Update a service (Admin only)
+/**
+ * @swagger
+ * /services/{id}:
+ *   put:
+ *     summary: Update an existing service (Admin only)
+ *     tags: [Services]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the service to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ServiceInput'
+ *     responses:
+ *       200:
+ *         description: Service updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Service'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Service not found
+ *       500:
+ *         description: Server error
+ */
 router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   const { name, description, price } = req.body;
@@ -69,7 +196,42 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Delete a service (Admin only)
+/**
+ * @swagger
+ * /services/{id}:
+ *   delete:
+ *     summary: Delete a service (Admin only)
+ *     tags: [Services]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the service to delete
+ *     responses:
+ *       200:
+ *         description: Service deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 id:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Service not found
+ *       500:
+ *         description: Server error
+ */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {

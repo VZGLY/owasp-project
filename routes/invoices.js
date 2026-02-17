@@ -3,7 +3,37 @@ const router = express.Router();
 const { query } = require('../config/db');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 
-// Get all invoices (Admin only)
+/**
+ * @swagger
+ * tags:
+ *   name: Invoices
+ *   description: Invoice management operations
+ */
+
+/**
+ * @swagger
+ * /invoices:
+ *   get:
+ *     summary: Get all invoices (Admin only)
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of invoices
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Invoice'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   try {
     const result = await query(
@@ -26,7 +56,37 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
   }
 });
 
-// Get a single invoice by ID (Admin only)
+/**
+ * @swagger
+ * /invoices/{id}:
+ *   get:
+ *     summary: Get a single invoice by ID (Admin only)
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the invoice to retrieve
+ *     responses:
+ *       200:
+ *         description: A single invoice object with its items
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Invoice'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Invoice not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
@@ -59,7 +119,47 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Create a new invoice (Admin only)
+/**
+ * @swagger
+ * /invoices:
+ *   post:
+ *     summary: Create a new invoice (Admin only)
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/InvoiceInput'
+ *     responses:
+ *       201:
+ *         description: Invoice created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 total_amount:
+ *                   type: number
+ *                   format: float
+ *                 invoice_date:
+ *                   type: string
+ *                   format: date-time
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid input or service not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { customer_id, vehicle_id, items } = req.body; // items is an array [{ service_id, quantity }]
   const client = await query('BEGIN'); // Start transaction
@@ -98,7 +198,48 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
   }
 });
 
-// Update invoice status (Admin only)
+/**
+ * @swagger
+ * /invoices/{id}/status:
+ *   patch:
+ *     summary: Update invoice status (Admin only)
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the invoice to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/InvoiceStatusUpdate'
+ *     responses:
+ *       200:
+ *         description: Invoice status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 status:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Invoice not found
+ *       500:
+ *         description: Server error
+ */
 router.patch('/:id/status', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
     const { id } = req.params;
     const { status } = req.body; // e.g., 'paid', 'pending', 'cancelled'
@@ -117,7 +258,42 @@ router.patch('/:id/status', authenticateToken, authorizeRoles(['admin']), async 
     }
 });
 
-// Delete an invoice (Admin only)
+/**
+ * @swagger
+ * /invoices/{id}:
+ *   delete:
+ *     summary: Delete an invoice (Admin only)
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the invoice to delete
+ *     responses:
+ *       200:
+ *         description: Invoice deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 id:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Invoice not found
+ *       500:
+ *         description: Server error
+ */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {

@@ -6,10 +6,19 @@ const customersRoutes = require('./routes/customers');
 const vehiclesRoutes = require('./routes/vehicles');
 const servicesRoutes = require('./routes/services');
 const invoicesRoutes = require('./routes/invoices');
-const feedbackRoutes = require('./routes/feedback'); // Add this line
-const { authenticateToken, authorizeRoles } = require('./middleware/authMiddleware'); // Added for future use
+const feedbackRoutes = require('./routes/feedback');
+const { authenticateToken, authorizeRoles } = require('./middleware/authMiddleware');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swaggerDef');
+require('dotenv').config();
 
 app.use(express.json());
+
+// Conditionally enable Swagger UI
+if (process.env.ENABLE_SWAGGER === 'true') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  console.log('Swagger UI enabled at /api-docs');
+}
 
 app.get('/', (req, res) => {
   res.send('Welcome to the Garage Management API!');

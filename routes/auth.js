@@ -7,7 +7,37 @@ require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // Fallback for local testing
 
-// Register a new user
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: User authentication and authorization
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserRegister'
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Username already exists or invalid input
+ *       500:
+ *         description: Server error
+ */
 router.post('/register', async (req, res) => {
   const { username, password, role } = req.body;
 
@@ -28,7 +58,30 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login user
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Log in a user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserLogin'
+ *     responses:
+ *       200:
+ *         description: Logged in successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Server error
+ */
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 

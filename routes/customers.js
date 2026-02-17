@@ -3,7 +3,37 @@ const router = express.Router();
 const { query } = require('../config/db');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 
-// Get all customers (Admin only)
+/**
+ * @swagger
+ * tags:
+ *   name: Customers
+ *   description: Customer management operations
+ */
+
+/**
+ * @swagger
+ * /customers:
+ *   get:
+ *     summary: Get all customers (Admin only)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of customers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Customer'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   try {
     const result = await query('SELECT id, first_name, last_name, email, phone FROM customers');
@@ -14,7 +44,37 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
   }
 });
 
-// Get a single customer by ID (Admin only)
+/**
+ * @swagger
+ * /customers/{id}:
+ *   get:
+ *     summary: Get a single customer by ID (Admin only)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the customer to retrieve
+ *     responses:
+ *       200:
+ *         description: A single customer object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Customer'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Customer not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
@@ -29,7 +89,36 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Create a new customer (Admin only)
+/**
+ * @swagger
+ * /customers:
+ *   post:
+ *     summary: Create a new customer (Admin only)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CustomerInput'
+ *     responses:
+ *       201:
+ *         description: Customer created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Customer'
+ *       400:
+ *         description: Invalid input or customer with this email already exists
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { first_name, last_name, email, phone } = req.body;
   try {
@@ -47,7 +136,45 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
   }
 });
 
-// Update a customer (Admin only)
+/**
+ * @swagger
+ * /customers/{id}:
+ *   put:
+ *     summary: Update an existing customer (Admin only)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the customer to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CustomerInput'
+ *     responses:
+ *       200:
+ *         description: Customer updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Customer'
+ *       400:
+ *         description: Invalid input or customer with this email already exists
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Customer not found
+ *       500:
+ *         description: Server error
+ */
 router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   const { first_name, last_name, email, phone } = req.body;
@@ -69,7 +196,42 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Delete a customer (Admin only)
+/**
+ * @swagger
+ * /customers/{id}:
+ *   delete:
+ *     summary: Delete a customer (Admin only)
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the customer to delete
+ *     responses:
+ *       200:
+ *         description: Customer deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 id:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Customer not found
+ *       500:
+ *         description: Server error
+ */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {

@@ -3,7 +3,37 @@ const router = express.Router();
 const { query } = require('../config/db');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 
-// Get all feedback (Admin only)
+/**
+ * @swagger
+ * tags:
+ *   name: Feedback
+ *   description: Customer feedback operations
+ */
+
+/**
+ * @swagger
+ * /feedback:
+ *   get:
+ *     summary: Get all feedback (Admin only)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of feedback entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Feedback'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   try {
     const result = await query(
@@ -26,7 +56,37 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
   }
 });
 
-// Get a single feedback by ID (Admin only)
+/**
+ * @swagger
+ * /feedback/{id}:
+ *   get:
+ *     summary: Get a single feedback entry by ID (Admin only)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the feedback entry to retrieve
+ *     responses:
+ *       200:
+ *         description: A single feedback entry object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Feedback'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Feedback not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
@@ -55,7 +115,36 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Submit new feedback (Admin and User)
+/**
+ * @swagger
+ * /feedback:
+ *   post:
+ *     summary: Submit new feedback (Admin and User)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FeedbackInput'
+ *     responses:
+ *       201:
+ *         description: Feedback submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Feedback'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin or User role required)
+ *       500:
+ *         description: Server error
+ */
 router.post('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
   const { customer_id, vehicle_id, rating, comments } = req.body;
   try {
@@ -70,7 +159,45 @@ router.post('/', authenticateToken, authorizeRoles(['admin', 'user']), async (re
   }
 });
 
-// Update feedback (Admin only)
+/**
+ * @swagger
+ * /feedback/{id}:
+ *   put:
+ *     summary: Update feedback (Admin only)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the feedback entry to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FeedbackInput'
+ *     responses:
+ *       200:
+ *         description: Feedback updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Feedback'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Feedback not found
+ *       500:
+ *         description: Server error
+ */
 router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   const { customer_id, vehicle_id, rating, comments } = req.body;
@@ -89,7 +216,42 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Delete feedback (Admin only)
+/**
+ * @swagger
+ * /feedback/{id}:
+ *   delete:
+ *     summary: Delete feedback (Admin only)
+ *     tags: [Feedback]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the feedback entry to delete
+ *     responses:
+ *       200:
+ *         description: Feedback deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 id:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Feedback not found
+ *       500:
+ *         description: Server error
+ */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {

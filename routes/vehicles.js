@@ -3,7 +3,37 @@ const router = express.Router();
 const { query } = require('../config/db');
 const { authenticateToken, authorizeRoles } = require('../middleware/authMiddleware');
 
-// Get all vehicles (Admin only)
+/**
+ * @swagger
+ * tags:
+ *   name: Vehicles
+ *   description: Vehicle management operations
+ */
+
+/**
+ * @swagger
+ * /vehicles:
+ *   get:
+ *     summary: Get all vehicles (Admin only)
+ *     tags: [Vehicles]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of vehicles
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Vehicle'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   try {
     const result = await query(
@@ -26,7 +56,37 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
   }
 });
 
-// Get a single vehicle by ID (Admin only)
+/**
+ * @swagger
+ * /vehicles/{id}:
+ *   get:
+ *     summary: Get a single vehicle by ID (Admin only)
+ *     tags: [Vehicles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the vehicle to retrieve
+ *     responses:
+ *       200:
+ *         description: A single vehicle object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Vehicle'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Vehicle not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
@@ -55,7 +115,36 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Create a new vehicle (Admin only)
+/**
+ * @swagger
+ * /vehicles:
+ *   post:
+ *     summary: Create a new vehicle (Admin only)
+ *     tags: [Vehicles]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/VehicleInput'
+ *     responses:
+ *       201:
+ *         description: Vehicle created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Vehicle'
+ *       400:
+ *         description: Invalid input or vehicle with this license plate/VIN already exists
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       500:
+ *         description: Server error
+ */
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { customer_id, make, model, year, license_plate, vin } = req.body;
   try {
@@ -73,7 +162,45 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
   }
 });
 
-// Update a vehicle (Admin only)
+/**
+ * @swagger
+ * /vehicles/{id}:
+ *   put:
+ *     summary: Update an existing vehicle (Admin only)
+ *     tags: [Vehicles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the vehicle to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/VehicleInput'
+ *     responses:
+ *       200:
+ *         description: Vehicle updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Vehicle'
+ *       400:
+ *         description: Invalid input or vehicle with this license plate/VIN already exists
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Vehicle not found
+ *       500:
+ *         description: Server error
+ */
 router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   const { customer_id, make, model, year, license_plate, vin } = req.body;
@@ -95,7 +222,42 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   }
 });
 
-// Delete a vehicle (Admin only)
+/**
+ * @swagger
+ * /vehicles/{id}:
+ *   delete:
+ *     summary: Delete a vehicle (Admin only)
+ *     tags: [Vehicles]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Numeric ID of the vehicle to delete
+ *     responses:
+ *       200:
+ *         description: Vehicle deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 id:
+ *                   type: integer
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin role required)
+ *       404:
+ *         description: Vehicle not found
+ *       500:
+ *         description: Server error
+ */
 router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
