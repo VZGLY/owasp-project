@@ -49,7 +49,6 @@ router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req
   if (last_name) {
     // VULN #14: Injection SQL - Recherche de clients par nom
     sqlQuery += ` WHERE last_name ILIKE '%${last_name}%'`;
-    console.log('Executing vulnerable customer search query:', sqlQuery);
   }
   try {
     const result = await query(sqlQuery);

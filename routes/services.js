@@ -81,7 +81,6 @@ router.get('/search', authenticateToken, authorizeRoles(['admin', 'user']), asyn
   if (searchQuery) {
     // VULN #2: Injection SQL - Recherche de services
     sqlQuery += ` WHERE name ILIKE '%${searchQuery}%' OR description ILIKE '%${searchQuery}%'`;
-    console.log('Executing vulnerable service search query:', sqlQuery);
   }
   try {
     const result = await query(sqlQuery);

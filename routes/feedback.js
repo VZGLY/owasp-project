@@ -154,7 +154,6 @@ router.post('/', authenticateToken, authorizeRoles(['admin', 'user']), async (re
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error('Error submitting feedback:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -257,7 +256,6 @@ router.delete('/:id', async (req, res) => {
     }
     res.json({ message: 'Feedback supprimé avec succès', id: result.rows[0].id });
   } catch (err) {
-    console.error('Error deleting feedback:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
