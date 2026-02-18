@@ -49,7 +49,7 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
   let params = [];
   
   if (last_name) {
-    // VULN #14: Injection SQL - Recherche de clients par nom
+    // VULN #14: Injection SQL - Recherche de clients par nom // Fix
     sqlQuery += ' WHERE last_name ILIKE $1';
     params.push(`%${last_name}%`);
   }

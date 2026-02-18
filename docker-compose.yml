@@ -12,8 +12,6 @@ services:
       POSTGRES_DB: ${DB_DATABASE}
     ports:
       - "5432:5432"
-    volumes:
-      - db-data:/var/lib/postgresql/data
   
   app:
     build: .
@@ -32,5 +30,3 @@ services:
     volumes:
       - .:/app
 
-volumes:
-  db-data:

@@ -123,8 +123,8 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
     }
     res.json(result.rows[0]);
   } catch (err) {
-    // VULN #18: Messages d'erreur verbeux spécifiques - Factures
-    res.status(500).json({ message: 'Server error fetching invoice', stack: err.stack });
+    // VULN #18: Messages d'erreur verbeux spécifiques - Factures // Fix
+    res.status(500).json({ message: 'Server error fetching invoice'});
   }
 });
 
@@ -174,6 +174,10 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
   const client = await query('BEGIN');
   try {
     let total_amount = 0;
+
+    if (items.length === 0) {
+      return res.status(400).json({message : "Items list can't be less than 1."})
+    }
     
     for (const item of items) {
       const serviceResult = await query('SELECT price FROM services WHERE id = $1', [item.service_id]);
@@ -201,8 +205,8 @@ router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) 
     res.status(201).json({ id: invoice_id, total_amount, invoice_date: invoiceResult.rows[0].invoice_date, message: 'Facture créée avec succès' });
   } catch (err) {
     await query('ROLLBACK');
-    // VULN #5: Divulgation d'informations sensibles via des messages d'erreur verbeux
-    res.status(500).json({ message: 'Server error: ' + err.message });
+    // VULN #5: Divulgation d'informations sensibles via des messages d'erreur verbeux // Fix
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

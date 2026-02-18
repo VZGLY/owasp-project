@@ -89,8 +89,8 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
  */
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
-  // VULN #8: Décalage d'ID sur les véhicules
-  const targetId = parseInt(id) + 1;
+  // VULN #8: Décalage d'ID sur les véhicules // Fix
+  const targetId = parseInt(id);
   try {
     const result = await query(
       `SELECT

@@ -78,12 +78,14 @@ router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req
 router.get('/search', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
   const { query: searchQuery } = req.query;
   let sqlQuery = 'SELECT id, name, description, price FROM services';
+  let params = []
   if (searchQuery) {
-    // VULN #2: Injection SQL - Recherche de services
-    sqlQuery += ` WHERE name ILIKE '%${searchQuery}%' OR description ILIKE '%${searchQuery}%'`;
+    // VULN #2: Injection SQL - Recherche de services // Fix
+    sqlQuery += ` WHERE name ILIKE '$1' OR description ILIKE '$1'`;
+    params.push(`%${searchQuery}%`)
   }
   try {
-    const result = await query(sqlQuery);
+    const result = await query(sqlQuery, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -140,8 +142,8 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (
     }
     res.json(result.rows[0]);
   } catch (err) {
-    // VULN #17: Messages d'erreur verbeux spécifiques - Services
-    res.status(500).json({ message: 'Server error fetching service', stack: err.stack });
+    // VULN #17: Messages d'erreur verbeux spécifiques - Services // Fix
+    res.status(500).json({ message: 'Server error fetching service' });
   }
 });
 
@@ -178,7 +180,10 @@ router.get('/:id', authenticateToken, authorizeRoles(['admin', 'user']), async (
 router.post('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { name, description, price } = req.body;
   try {
-    // VULN #6: Valeurs de prix de service négatives (manque de validation)
+    if (price <= 0) {
+      return res.status(400).json({message: 'The price need to be more than 0'})
+    }
+    // VULN #6: Valeurs de prix de service négatives (manque de validation) // Fix
     const result = await query(
       'INSERT INTO services (name, description, price) VALUES ($1, $2, $3) RETURNING id, name, description, price',
       [name, description, price]
@@ -235,7 +240,10 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
   const { id } = req.params;
   const { name, description, price } = req.body;
   try {
-    // VULN #6: Valeurs de prix de service négatives (manque de validation)
+    if (price <= 0) {
+      return res.status(400).json({message: 'The price need to be more than 0'})
+    }
+    // VULN #6: Valeurs de prix de service négatives (manque de validation) // Fix
     const result = await query(
       'UPDATE services SET name = $1, description = $2, price = $3 WHERE id = $4 RETURNING id, name, description, price',
       [name, description, price, id]

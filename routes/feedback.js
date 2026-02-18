@@ -246,9 +246,9 @@ router.put('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res
  *       500:
  *         description: Erreur serveur
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
-  // VULN #15: Suppression non authentifiée
+  // VULN #15: Suppression non authentifiée // Fix
   try {
     const result = await query('DELETE FROM feedback WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) {

@@ -13,6 +13,7 @@ const { authenticateToken, authorizeRoles } = require('./middleware/authMiddlewa
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swaggerDef');
 const cors = require('cors');
+const sanitizeInput = require('./middleware/sanitizeInput');
 require('dotenv').config();
 
 app.use(express.json());
@@ -20,13 +21,8 @@ app.use(express.json());
 // VULN #20: CORS - Autoriser toutes les origines
 app.use(cors());
 
-// VULN #16: Désactivation des en-têtes de sécurité
-app.use((req, res, next) => {
-  res.removeHeader('X-Content-Type-Options');
-  res.removeHeader('Content-Security-Policy');
-  res.removeHeader('Strict-Transport-Security');
-  next();
-});
+app.use(sanitizeInput)
+
 
 if (process.env.ENABLE_SWAGGER === 'true') {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
