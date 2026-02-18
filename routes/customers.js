@@ -42,8 +42,8 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
  *       500:
  *         description: Erreur serveur
  */
-router.get('/', authenticateToken, authorizeRoles(['admin', 'user']), async (req, res) => {
-  // VULN #1 : Accès non autorisé aux données sensibles - Clients
+router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
+  // VULN #1 : Accès non autorisé aux données sensibles - Clients // Fix
   const { last_name } = req.query;
   let sqlQuery = 'SELECT id, first_name, last_name, email, phone FROM customers';
   if (last_name) {

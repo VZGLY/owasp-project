@@ -42,14 +42,13 @@ require('dotenv').config(); // Ensure dotenv is loaded for DB_PORT
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    // VULN #11: Exposition d'informations sensibles (Nom de l'application, version, port DB)
+    // VULN #11: Exposition d'informations sensibles (Nom de l'application, version, port DB) // Fix
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
     const sensitiveInfo = {
       appName: packageJson.name,
       appVersion: packageJson.version,
-      dbPort: process.env.DB_PORT,
     };
 
     res.json(sensitiveInfo);

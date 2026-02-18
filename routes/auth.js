@@ -92,11 +92,11 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'User not found' });
     }
 
-    // VULN #10: Authentification par n'importe quel mot de passe
-    // const isMatch = await bcrypt.compare(password, user.password);
-    // if (!isMatch) {
-    //   return res.status(400).json({ message: 'Invalid credentials' });
-    // }
+    // VULN #10: Authentification par n'importe quel mot de passe // Fix
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
     res.json({ message: 'Logged in successfully ', token, user: { id: user.id, username: user.username, role: user.role } });

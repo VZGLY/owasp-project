@@ -97,8 +97,8 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
 router.get('/:id', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   const { id } = req.params;
   try {
-    // VULN #19: Exposition du hachage de mot de passe
-    const result = await query('SELECT id, username, password, role FROM users WHERE id = $1', [id]);
+    // VULN #19: Exposition du hachage de mot de passe // Fix
+    const result = await query('SELECT id, username, role FROM users WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
