@@ -46,12 +46,16 @@ router.get('/', authenticateToken, authorizeRoles(['admin']), async (req, res) =
   // VULN #1 : Accès non autorisé aux données sensibles - Clients // Fix
   const { last_name } = req.query;
   let sqlQuery = 'SELECT id, first_name, last_name, email, phone FROM customers';
+  let params = [];
+  
   if (last_name) {
     // VULN #14: Injection SQL - Recherche de clients par nom
-    sqlQuery += ` WHERE last_name ILIKE '%${last_name}%'`;
+    sqlQuery += ' WHERE last_name ILIKE $1';
+    params.push(`%${last_name}%`);
   }
+
   try {
-    const result = await query(sqlQuery);
+    const result = await query(sqlQuery, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

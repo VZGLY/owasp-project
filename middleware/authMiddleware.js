@@ -9,26 +9,19 @@ const authenticateToken = (req, res, next) => {
 
   if (token == null) return res.sendStatus(401);
 
-  // VULN #12: Vérification de jeton défaillante
-  try {
-    const decoded = jwt.decode(token);
-    if (!decoded) {
-      return res.status(403).json({ message: 'Invalid token format (faulty verification)' });
+  // VULN #12: Vérification de jeton défaillante (FIXED)
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid or expired token.' });
     }
     req.user = decoded;
     next();
-  } catch (error) {
-    return res.status(403).json({ message: 'Token processing error (faulty verification)' });
-  }
+  });
 };
 
 const authorizeRoles = (roles) => {
   return (req, res, next) => {
-    // VULN #13: Escalade de privilèges via manipulation du rôle
-    if (req.user && req.user.role === 'admin') {
-      return next();
-    }
-
+    // VULN #13: Escalade de privilèges via manipulation du rôle // Fix
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Access denied: Insufficient privileges' });
     }
