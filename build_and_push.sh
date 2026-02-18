@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 # Exit immediately if a command exits with a non-zero status.
 set -e
@@ -29,27 +29,29 @@ echo ""
 
 # --- Build and Tag Application Image ---
 echo "Building ${APP_IMAGE_NAME}:${VERSION} and latest..."
-docker build -t ${DOCKER_USERNAME}/${APP_IMAGE_NAME}:${VERSION} -t ${DOCKER_USERNAME}/${APP_IMAGE_NAME}:latest .
+APP_FULL_IMAGE="${REGISTRY_URL}/${DOCKER_USERNAME}/${APP_IMAGE_NAME}"
+docker build -t ${APP_FULL_IMAGE}:${VERSION} -t ${APP_FULL_IMAGE}:latest .
 echo "Application image built and tagged successfully."
 echo ""
 
 # --- Build and Tag DB Image ---
 echo "Building ${DB_IMAGE_NAME}:${VERSION} and latest..."
-docker build -f ./database/Dockerfile.db -t ${DOCKER_USERNAME}/${DB_IMAGE_NAME}:${VERSION} -t ${DOCKER_USERNAME}/${DB_IMAGE_NAME}:latest ./database
+DB_FULL_IMAGE="${REGISTRY_URL}/${DOCKER_USERNAME}/${DB_IMAGE_NAME}"
+docker build -f ./database/Dockerfile.db -t ${DB_FULL_IMAGE}:${VERSION} -t ${DB_FULL_IMAGE}:latest ./database
 echo "DB image built and tagged successfully."
 echo ""
 
 # --- Push Application Image ---
 echo "Pushing ${APP_IMAGE_NAME}:${VERSION} and latest to ${REGISTRY_URL}..."
-docker push ${DOCKER_USERNAME}/${APP_IMAGE_NAME}:${VERSION}
-docker push ${DOCKER_USERNAME}/${APP_IMAGE_NAME}:latest
+docker push ${APP_FULL_IMAGE}:${VERSION}
+docker push ${APP_FULL_IMAGE}:latest
 echo "Application image pushed successfully."
 echo ""
 
 # --- Push DB Image ---
 echo "Pushing ${DB_IMAGE_NAME}:${VERSION} and latest to ${REGISTRY_URL}..."
-docker push ${DOCKER_USERNAME}/${DB_IMAGE_NAME}:${VERSION}
-docker push ${DOCKER_USERNAME}/${DB_IMAGE_NAME}:latest
+docker push ${DB_FULL_IMAGE}:${VERSION}
+docker push ${DB_FULL_IMAGE}:latest
 echo "DB image pushed successfully."
 echo ""
 
